@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Moov Shop Pro - Gestion & Accès</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: sans-serif;
+        }
+
+        body {
+            background: #f4f6f8;
+            color: #333;
+        }
+
+        #lock-screen {
+            position: fixed;
+            inset: 0;
+            background: #005bbb;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .login-card {
+            background: white;
+            padding: 25px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 320px;
+            color: #333;
+            text-align: center;
+        }
+
+        .app-content {
+            display: none;
+            padding: 15px;
+            max-width: 500px;
+            margin: auto;
+            padding-bottom: 80px;
+        }
+
+        header {
+            background: #005bbb;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            border-radius: 0 0 20px 20px;
+            margin-bottom: 15px;
+            position: relative;
+            font-weight: bold;
+        }
+
+        .logout {
+            position: absolute;
+            right: 10px;
+            top: 15px;
+            font-size: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .card {
+            background: white;
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .label {
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: #ddd;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .tab.active-c {
+            background: #ff8200;
+            color: white;
+        }
+
+        .tab.active-s {
+            background: #005bbb;
+            color: white;
+        }
+
+        .tab.active-d {
+            background: #e74c3c;
+            color: white;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 8px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        button.action {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .bg-moov {
+            background: #ff8200;
+        }
+
+        .bg-blue {
+            background: #005bbb;
+        }
+
+        .bg-red {
+            background: #e74c3c;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #hist-screen {
+            position: fixed;
+            inset: 0;
+            background: #f4f6f8;
+            z-index: 500;
+            display: none;
+            flex-direction: column;
+        }
+
+        .hist-header {
+            background: #333;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            position: relative;
+        }
+
+        .close-hist {
+            position: absolute;
+            left: 15px;
+            top: 15px;
+            cursor: pointer;
+        }
+
+        .hist-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .item {
+            background: white;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid #ddd;
+        }
+
+        .net-profit {
+            background: #27ae60;
+            color: white;
+            padding: 15px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="lock-screen">
+        <div class="login-card">
+            <h2 style="color:#005bbb">MOOV SHOP</h2>
+            <input type="tel" id="login-user" placeholder="Numéro Utilisateur">
+            <input type="password" id="login-pin" placeholder="Code PIN">
+            <button onclick="unlock()" class="action bg-blue">SE CONNECTER</button>
+        </div>
+    </div>
+
+    <div id="main-app" class="app-content">
+        <header>
+            <span id="user-role">SESSION</span>
+            <div class="logout" onclick="location.reload()">Quitter</div>
+        </header>
+
+        <div id="admin-stats" class="hidden">
+            <div class="net-profit">
+                <p class="label" style="color:white; opacity:0.8">Bénéfice Réel (Com. 5% + SIM - Dépenses)</p>
+                <h2 id="tot-net">0 F</h2>
+            </div>
+            <div class="grid">
+                <div class="card">
+                    <p class="label">Ventes Crédit</p>
+                    <p id="tot-vc" style="font-weight:bold; color:#ff8200">0 F</p>
+                </div>
+                <div class="card">
+                    <p class="label">Com. Crédit (5%)</p>
+                    <p id="tot-com" style="font-weight:bold; color:green">0 F</p>
+                </div>
+                <div class="card">
+                    <p class="label">Ventes SIM</p>
+                    <p id="tot-vs" style="font-weight:bold; color:#005bbb">0 F</p>
+                </div>
+                <div class="card">
+                    <p class="label">Dépenses</p>
+                    <p id="tot-vd" style="font-weight:bold; color:#e74c3c">0 F</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button id="t-c" class="tab active-c" onclick="setTab('c')">CRÉDIT</button>
+            <button id="t-s" class="tab" onclick="setTab('s')">SIM</button>
+            <button id="t-d" class="tab" onclick="setTab('d')">DÉPENSE</button>
+        </div>
+
+        <div id="v-c" class="card">
+            <input type="tel" id="c-num" placeholder="Numéro Client">
+            <input type="number" id="c-mnt" placeholder="Montant">
+            <button class="action bg-moov" onclick="add('C')">Enregistrer Crédit</button>
+        </div>
+
+        <div id="v-s" class="card hidden">
+            <input type="text" id="s-nom" placeholder="Nom Client">
+            <input type="number" id="s-prix" placeholder="Prix">
+            <button class="action bg-blue" onclick="add('S')">Enregistrer SIM</button>
+        </div>
+
+        <div id="v-d" class="card hidden">
+            <input type="text" id="d-motif" placeholder="Motif">
+            <input type="number" id="d-mnt" placeholder="Montant">
+            <button class="action bg-red" onclick="add('D')">Enregistrer Dépense</button>
+        </div>
+
+        <div id="admin-panel" class="hidden">
+            <button class="action" style="background:#333; margin-bottom:10px" onclick="openHist()">📜 HISTORIQUE &
+                PDF</button>
+            <button class="action" style="background:#27ae60; margin-bottom:10px"
+                onclick="toggleSection('sect-perf')">📊 Performance Employés</button>
+            <button class="action bg-blue" onclick="toggleSection('sect-users')">👥 Gestion des Accès</button>
+
+            <div id="sect-perf" class="card hidden" style="margin-top:10px"></div>
+
+            <div id="sect-users" class="card hidden" style="margin-top:10px">
+                <h3 class="label">Ajouter un employé</h3>
+                <input type="tel" id="nu-tel" placeholder="N° Téléphone">
+                <input type="text" id="nu-pin" placeholder="Code PIN">
+                <button class="action bg-blue" style="padding:10px" onclick="addUser()">Ajouter l'accès</button>
+                <div id="user-list" style="margin-top:15px"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="hist-screen">
+        <div class="hist-header"><span class="close-hist" onclick="closeHist()">✖</span>HISTORIQUE</div>
+        <div class="tabs" style="margin:10px;"><button id="ht-c" class="tab active-c"
+                onclick="renderHist('C')">Crédits</button><button id="ht-s" class="tab"
+                onclick="renderHist('S')">SIMs</button><button id="ht-d" class="tab"
+                onclick="renderHist('D')">Dépenses</button></div>
+        <div style="padding: 0 15px;"><button class="action" style="background:#27ae60; padding:10px; font-size:12px;"
+                onclick="exportPDF()">📥 TÉLÉCHARGER PDF</button></div>
+        <div id="hist-body" class="hist-body"></div>
+    </div>
+
+    <script>
+        // Initialisation de la structure de données
+        let db = {
+            c: [], s: [], d: [],
+            admin: { u: "91404080", p: "1234" },
+            staffs: [{ u: "98089696", p: "1234" }]
+        };
+        let activeUser = "";
+        let currentType = "C";
+
+        // Chargement initial depuis SQLite (via le serveur)
+        async function loadData() {
+            try {
+                const res = await fetch('/api/data');
+                const cloudData = await res.json();
+                if (cloudData) {
+                    db.c = cloudData.c || [];
+                    db.s = cloudData.s || [];
+                    db.d = cloudData.d || [];
+                    db.staffs = cloudData.staffs || [{ u: "98089696", p: "1234" }];
+                }
+            } catch (e) { console.log("Erreur de connexion serveur, passage en mode local"); }
+            renderStats();
+        }
+
+        async function save() {
+            renderStats();
+            try {
+                await fetch('/api/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(db)
+                });
+            } catch (e) {
+                // Secours sur localStorage si le serveur est coupé
+                localStorage.setItem('moov_final_v7', JSON.stringify(db));
+            }
+        }
+
+        function unlock() {
+            const u = document.getElementById('login-user').value, p = document.getElementById('login-pin').value;
+            if (u === db.admin.u && p === db.admin.p) activeUser = "ADMIN";
+            else {
+                const s = db.staffs.find(x => x.u === u && x.p === p);
+                if (s) activeUser = s.u; else return alert("Identifiants incorrects");
+            }
+            if (activeUser === "ADMIN") { document.getElementById('admin-stats').classList.remove('hidden'); document.getElementById('admin-panel').classList.remove('hidden'); }
+            document.getElementById('user-role').innerText = activeUser === "ADMIN" ? "PROPRIÉTAIRE" : "EMPLOYÉ: " + activeUser;
+            document.getElementById('lock-screen').style.display = 'none';
+            document.getElementById('main-app').style.display = 'block';
+            loadData(); // Charger les données réelles à la connexion
+        }
+
+        function add(type) {
+            const t = new Date().toLocaleTimeString();
+            if (type === 'C') {
+                const n = document.getElementById('c-num').value, m = parseInt(document.getElementById('c-mnt').value);
+                if (n && m) db.c.push({ n, m, t, seller: activeUser });
+            } else if (type === 'S') {
+                const nom = document.getElementById('s-nom').value, p = parseInt(document.getElementById('s-prix').value);
+                if (nom && p) db.s.push({ nom, p, t, seller: activeUser });
+            } else {
+                const mof = document.getElementById('d-motif').value, mnt = parseInt(document.getElementById('d-mnt').value);
+                if (mof && mnt) db.d.push({ mof, mnt, t, seller: activeUser });
+            }
+            save(); alert("Enregistré avec succès !");
+            document.querySelectorAll('input').forEach(i => { if (i.id !== 'login-user') i.value = ""; });
+        }
+
+        function toggleSection(id) {
+            const el = document.getElementById(id);
+            const isHidden = el.classList.contains('hidden');
+            document.getElementById('sect-perf').classList.add('hidden');
+            document.getElementById('sect-users').classList.add('hidden');
+            if (isHidden) el.classList.remove('hidden');
+            if (id === 'sect-users') renderUsers();
+            if (id === 'sect-perf') renderPerf();
+        }
+
+        function addUser() {
+            const u = document.getElementById('nu-tel').value, p = document.getElementById('nu-pin').value;
+            if (u && p) { db.staffs.push({ u, p }); save(); renderUsers(); }
+        }
+
+        function delUser(i) { if (confirm("Supprimer cet accès ?")) { db.staffs.splice(i, 1); save(); renderUsers(); } }
+
+        function renderUsers() {
+            const c = document.getElementById('user-list'); c.innerHTML = "";
+            db.staffs.forEach((s, i) => {
+                c.innerHTML += `<div class="item"><span><b>${s.u}</b> (PIN: ${s.p})</span><button onclick="delUser(${i})" style="color:red;border:none;background:none;font-weight:bold">✕</button></div>`;
+            });
+        }
+
+        function renderPerf() {
+            const c = document.getElementById('sect-perf');
+            const p = {};[...db.c, ...db.s].forEach(v => p[v.seller] = (p[v.seller] || 0) + (v.m || v.p));
+            c.innerHTML = "<h3 class='label'>Ventes totales par employé</h3>";
+            for (let u in p) c.innerHTML += `<div class="item"><span>${u}</span><b>${p[u]} F</b></div>`;
+        }
+
+        function renderStats() {
+            const vc = db.c.reduce((s, v) => s + v.m, 0), vs = db.s.reduce((s, v) => s + v.p, 0), vd = db.d.reduce((s, v) => s + v.mnt, 0);
+            const com = vc * 0.05;
+            document.getElementById('tot-vc').innerText = vc + " F";
+            document.getElementById('tot-com').innerText = com + " F";
+            document.getElementById('tot-vs').innerText = vs + " F";
+            document.getElementById('tot-vd').innerText = vd + " F";
+            document.getElementById('tot-net').innerText = (com + vs - vd) + " F";
+        }
+
+        function openHist() { document.getElementById('hist-screen').style.display = 'flex'; renderHist('C'); }
+        function closeHist() { document.getElementById('hist-screen').style.display = 'none'; }
+
+        function renderHist(f) {
+            currentType = f;
+            document.getElementById('ht-c').className = 'tab' + (f === 'C' ? ' active-c' : '');
+            document.getElementById('ht-s').className = 'tab' + (f === 'S' ? ' active-s' : '');
+            document.getElementById('ht-d').className = 'tab' + (f === 'D' ? ' active-d' : '');
+            const list = f === 'C' ? db.c : f === 'S' ? db.s : db.d;
+            const cont = document.getElementById('hist-body');
+            cont.innerHTML = "";
+            list.slice().reverse().forEach(x => {
+                cont.innerHTML += `<div class="item"><span><b>${x.n || x.nom || x.mof}</b><br><small>${x.t} - ${x.seller}</small></span><b>${x.m || x.p || x.mnt} F</b></div>`;
+            });
+        }
+
+        function exportPDF() {
+            const { jsPDF } = window.jspdf; const doc = new jsPDF();
+            doc.text("RAPPORT " + currentType, 14, 15);
+            const list = currentType === 'C' ? db.c : currentType === 'S' ? db.s : db.d;
+            const rows = list.map(x => [x.t, x.n || x.nom || x.mof, x.seller, (x.m || x.p || x.mnt) + " F"]);
+            doc.autoTable({ head: [['Heure', 'Détail', 'Vendeur', 'Montant']], body: rows, startY: 20 });
+            doc.save("Moov_Report.pdf");
+        }
+
+        function setTab(t) {
+            document.getElementById('v-c').classList.toggle('hidden', t !== 'c');
+            document.getElementById('v-s').classList.toggle('hidden', t !== 's');
+            document.getElementById('v-d').classList.toggle('hidden', t !== 'd');
+            document.getElementById('t-c').className = 'tab' + (t === 'c' ? ' active-c' : '');
+            document.getElementById('t-s').className = 'tab' + (t === 's' ? ' active-s' : '');
+            document.getElementById('t-d').className = 'tab' + (t === 'd' ? ' active-d' : '');
+        }
+    </script>
+</body>
+
+  </html>
+  
